@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../config/api';
 
-export interface User {
+interface user {
     id: number;
     name: string;
     salary: number;
@@ -9,29 +9,19 @@ export interface User {
     createdAt: string;
     updatedAt: string;
 }
-
-interface UserData {
-    clients: User[];
-    totalPages: number;
-    currentPage: number;
-}
-
-export const useListUsers = (params: { page: number; limit: number }) => {
-    const [data, setData] = useState<UserData | null>(null);
-    const [cachedData, setCachedData] = useState<UserData | null>(null);
+export const useGetClient = (id?: string) => {
+    const [data, setData] = useState<user | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<boolean>(false);
 
     const fetchUsers = async () => {
-        if (data) {
-            setCachedData(data);
-        }
+        if (!id) return;
         setLoading(true);
         try {
-            const response = await api.get('/users', { params });
+            const response = await api.get(`/users/${id}`);
             const result = response.data;
             setData(result);
-            setCachedData(null);
+            console.log(result);
         } catch (error) {
             setError(true);
         } finally {
@@ -41,7 +31,7 @@ export const useListUsers = (params: { page: number; limit: number }) => {
 
     useEffect(() => {
         fetchUsers();
-    }, [params]);
+    }, [id]);
 
-    return { data: cachedData || data, loading, error, fetchUsers };
+    return { data, loading, error, fetchUsers };
 };

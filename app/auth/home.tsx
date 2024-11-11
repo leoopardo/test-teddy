@@ -2,11 +2,13 @@ import Button from '@/components/buttons/Button';
 import { ClientCard } from '@/components/card/clientCard';
 import { Pagination } from '@/components/pagination';
 import { ThemedText } from '@/components/ThemedText';
-import { useListUsers } from '@/services/users/list';
+import { useListUsers, User } from '@/services/users/list';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import { useState } from 'react';
+import { createDrawerNavigator } from '@react-navigation/drawer';
+import { useEffect, useState } from 'react';
 import {
+    Alert,
     Modal,
     ScrollView,
     Text,
@@ -14,12 +16,22 @@ import {
     useColorScheme,
     View
 } from 'react-native';
+import { MutateCostumerDrawer } from './_components/mutateCostumer';
+import { useDeleteClient } from '@/services/users/delete';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const Drawer = createDrawerNavigator();
 
 export function HomeScreen() {
     const theme = useColorScheme() ?? 'light';
     const [params, setParams] = useState({ page: 1, limit: 10 });
     const [isPickerVisible, setPickerVisible] = useState(false);
-    const { data, loading } = useListUsers(params);
+    const { data, loading, fetchUsers } = useListUsers(params);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const deleteClient = useDeleteClient();
+    const [userUpdateId, setUserUpdateId] = useState<string | undefined>(
+        undefined
+    );
 
     function openPicker() {
         setPickerVisible(true);
@@ -28,6 +40,13 @@ export function HomeScreen() {
     function closePicker() {
         setPickerVisible(false);
     }
+
+    useEffect(() => {
+        if (!isCreateOpen && !deleteClient.loading) {
+            fetchUsers();
+            setUserUpdateId(undefined);
+        }
+    }, [isCreateOpen, deleteClient.loading]);
 
     return (
         <ScrollView className="h-full">
@@ -91,11 +110,6 @@ export function HomeScreen() {
                 </Modal>
 
                 <View className="flex gap-2 mt-4">
-                    {loading && (
-                        <Text className="h-full text-center">
-                            Carregando...
-                        </Text>
-                    )}
                     {data?.clients?.map((user, index) => (
                         <ClientCard
                             data-testid={`client-card-${index}`}
@@ -112,7 +126,48 @@ export function HomeScreen() {
                                             size={24}
                                         />
                                     ),
-                                    onClick: () => {}
+                                    onClick: () => {
+                                        Alert.alert(
+                                            'Salvar',
+                                            'Tem certeza de que salvar?',
+                                            [
+                                                {
+                                                    text: 'Cancelar',
+                                                    style: 'cancel'
+                                                },
+                                                {
+                                                    text: 'Confirmar',
+                                                    onPress: async () => {
+                                                        const saved =
+                                                            await AsyncStorage.getItem(
+                                                                'savedUsers'
+                                                            );
+                                                        const savedUsers: User[] =
+                                                            saved
+                                                                ? [
+                                                                      ...JSON.parse(
+                                                                          saved
+                                                                      )
+                                                                  ].filter(
+                                                                      (user) =>
+                                                                          user.id !==
+                                                                          user.id
+                                                                  )
+                                                                : [];
+
+                                                        await AsyncStorage.setItem(
+                                                            'savedUsers',
+                                                            JSON.stringify([
+                                                                ...savedUsers,
+                                                                user
+                                                            ])
+                                                        );
+                                                    }
+                                                }
+                                            ],
+                                            { cancelable: true }
+                                        );
+                                    }
                                 },
                                 {
                                     name: 'Editar',
@@ -123,7 +178,10 @@ export function HomeScreen() {
                                             color={'#3b82f6'}
                                         />
                                     ),
-                                    onClick: () => {}
+                                    onClick: () => {
+                                        setUserUpdateId(`${user.id}`);
+                                        setIsCreateOpen(true);
+                                    }
                                 },
                                 {
                                     name: 'Excluir',
@@ -134,13 +192,23 @@ export function HomeScreen() {
                                             color={'#f63b3b'}
                                         />
                                     ),
-                                    onClick: () => {}
+                                    onClick: () =>
+                                        deleteClient.confirmDelete(
+                                            `${user?.id}`
+                                        )
                                 }
                             ]}
                         />
                     ))}
                 </View>
-                <Button data-testid="nre-client-btn" onClick={() => {}} variant='outline' className='mt-4'>
+                <Button
+                    data-testid="nre-client-btn"
+                    onClick={() => {
+                        setIsCreateOpen(true);
+                    }}
+                    variant="outline"
+                    className="mt-4"
+                >
                     Adicionar cliente
                 </Button>
                 <Pagination
@@ -151,6 +219,11 @@ export function HomeScreen() {
                     }}
                 />
             </View>
+            <MutateCostumerDrawer
+                visible={isCreateOpen}
+                onClose={setIsCreateOpen}
+                userId={userUpdateId}
+            />
         </ScrollView>
     );
 }

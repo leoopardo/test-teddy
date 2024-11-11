@@ -1,5 +1,5 @@
 import { formatter } from '@/utils/foratter';
-import { TouchableOpacity, useColorScheme, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import { ThemedText } from '../ThemedText';
 import { ThemedView } from '../ThemedView';
 
@@ -18,7 +18,6 @@ export function ClientCard({
     actions,
     'data-testid': testId
 }: CardProps) {
-    const theme = useColorScheme() ?? 'light';
     return (
         <ThemedView className="rounded-lg p-4 shadow-sm" testID={testId}>
             <View className="flex flex-col gap-2 justify-center items-center">
@@ -33,6 +32,7 @@ export function ClientCard({
                     {actions &&
                         actions.map((action) => (
                             <TouchableOpacity
+                                key={action.name}
                                 onPress={action.onClick}
                                 testID={`action-${action.name || ''}`}
                             >
