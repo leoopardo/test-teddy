@@ -31,7 +31,7 @@ describe('TextField Component', () => {
         );
 
         const textField = getByTestId('text-field');
-        fireEvent(textField, 'onChange', 'New Value');
+        fireEvent(textField, 'onChangeText', 'New Value');
 
         expect(mockOnChange).toHaveBeenCalledWith('New Value');
         expect(mockOnChange).toHaveBeenCalledTimes(1);
@@ -49,7 +49,22 @@ describe('TextField Component', () => {
         );
 
         const textField = getByTestId('text-field');
-        // Verify Tailwind classes in styles (can vary based on how NativeWind is applied)
         expect(textField.props.className).toContain('bg-white border border-gray-300 p-2 rounded-md w-full text-2xl h-12 focus:border-orange-400 focus:border-1 focus:border-solid transition-all');
+    });
+
+    it('Should show error message when isTouched is true and errors is provided', () => {
+        const { getByText } = render(
+            <TextField
+                label="Test Label"
+                name="testName"
+                value=""
+                onChange={() => {}}
+                data-testid="text-field"
+                isTouched={true}
+                errors="Test Error"
+            />
+        );
+
+        expect(getByText('Test Error')).toBeTruthy();
     });
 });
