@@ -2,11 +2,13 @@ import Button from '@/components/buttons/Button';
 import { ClientCard } from '@/components/card/clientCard';
 import { Pagination } from '@/components/pagination';
 import { ThemedText } from '@/components/ThemedText';
+import { useDeleteClient } from '@/services/users/delete';
 import { useListUsers, User } from '@/services/users/list';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
-import { createDrawerNavigator } from '@react-navigation/drawer';
-import { useEffect, useState } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useCallback, useEffect, useState } from 'react';
 import {
     Alert,
     Modal,
@@ -17,21 +19,19 @@ import {
     View
 } from 'react-native';
 import { MutateCostumerDrawer } from './_components/mutateCostumer';
-import { useDeleteClient } from '@/services/users/delete';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const Drawer = createDrawerNavigator();
 
 export function HomeScreen() {
     const theme = useColorScheme() ?? 'light';
+    const navigation = useNavigation();
     const [params, setParams] = useState({ page: 1, limit: 10 });
     const [isPickerVisible, setPickerVisible] = useState(false);
-    const { data, loading, fetchUsers } = useListUsers(params);
+    const { data, fetchUsers } = useListUsers(params);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const deleteClient = useDeleteClient();
     const [userUpdateId, setUserUpdateId] = useState<string | undefined>(
         undefined
     );
+    const [savedClients, setSavedClients] = useState<User[]>([]);
 
     function openPicker() {
         setPickerVisible(true);
@@ -40,6 +40,77 @@ export function HomeScreen() {
     function closePicker() {
         setPickerVisible(false);
     }
+
+    async function listSavedClients() {
+        const saved = await AsyncStorage.getItem('savedUsers');
+        const savedUsers: User[] = saved ? JSON.parse(saved) : [];
+        setSavedClients(savedUsers);
+    }
+
+    async function saveClient(user: User) {
+        Alert.alert(
+            'Salvar',
+            'Tem certeza de que salvar?',
+            [
+                {
+                    text: 'Cancelar',
+                    style: 'cancel'
+                },
+                {
+                    text: 'Confirmar',
+                    onPress: async () => {
+                        const saved = savedClients;
+
+                        await AsyncStorage.setItem(
+                            'savedUsers',
+                            JSON.stringify([...saved, user])
+                        );
+                        fetchUsers();
+                    }
+                }
+            ],
+            { cancelable: true }
+        );
+    }
+
+    async function removeClient(user: User) {
+        Alert.alert(
+            'Remover dos salvos',
+            'Tem certeza de que remover dos salvos?',
+            [
+                {
+                    text: 'Cancelar',
+                    style: 'cancel'
+                },
+                {
+                    text: 'Confirmar',
+                    onPress: async () => {
+                        const saved = savedClients;
+
+                        await AsyncStorage.setItem(
+                            'savedUsers',
+                            JSON.stringify(
+                                saved.filter((value) => value.id !== user.id)
+                            )
+                        );
+                        fetchUsers();
+                    }
+                }
+            ],
+            { cancelable: true }
+        );
+    }
+    useFocusEffect(
+        useCallback(() => {
+            listSavedClients();
+        }, [data, navigation])
+    );
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchUsers();
+        }, [navigation])
+    );
 
     useEffect(() => {
         if (!isCreateOpen && !deleteClient.loading) {
@@ -120,53 +191,25 @@ export function HomeScreen() {
                             actions={[
                                 {
                                     name: 'Adicionar',
-                                    icon: (
+                                    icon: savedClients.find(
+                                        (value) => value.id === user.id
+                                    ) ? (
+                                        <MaterialCommunityIcons
+                                            name="minus"
+                                            size={24}
+                                        />
+                                    ) : (
                                         <MaterialCommunityIcons
                                             name="plus"
                                             size={24}
                                         />
                                     ),
                                     onClick: () => {
-                                        Alert.alert(
-                                            'Salvar',
-                                            'Tem certeza de que salvar?',
-                                            [
-                                                {
-                                                    text: 'Cancelar',
-                                                    style: 'cancel'
-                                                },
-                                                {
-                                                    text: 'Confirmar',
-                                                    onPress: async () => {
-                                                        const saved =
-                                                            await AsyncStorage.getItem(
-                                                                'savedUsers'
-                                                            );
-                                                        const savedUsers: User[] =
-                                                            saved
-                                                                ? [
-                                                                      ...JSON.parse(
-                                                                          saved
-                                                                      )
-                                                                  ].filter(
-                                                                      (user) =>
-                                                                          user.id !==
-                                                                          user.id
-                                                                  )
-                                                                : [];
-
-                                                        await AsyncStorage.setItem(
-                                                            'savedUsers',
-                                                            JSON.stringify([
-                                                                ...savedUsers,
-                                                                user
-                                                            ])
-                                                        );
-                                                    }
-                                                }
-                                            ],
-                                            { cancelable: true }
-                                        );
+                                        savedClients.find(
+                                            (value) => value.id === user.id
+                                        )
+                                            ? removeClient(user)
+                                            : saveClient(user);
                                     }
                                 },
                                 {

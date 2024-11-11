@@ -76,6 +76,7 @@ export function MutateCostumerDrawer({
             visible={visible}
             onRequestClose={() => onClose(false)}
             animationType="none"
+            testID="mutate-costumer-drawer"
         >
             <TouchableWithoutFeedback onPress={() => onClose(false)}>
                 <Animated.View
@@ -110,7 +111,9 @@ export function MutateCostumerDrawer({
                                         type="title"
                                         className="text-2xl mb-8"
                                     >
-                                        {userId ? 'Atualizar' : 'Criar'} Cliente
+                                        {userId
+                                            ? 'Atualizar cliente'
+                                            : 'Criar cliente'}
                                     </ThemedText>
                                     {!getById.loading && (
                                         <Formik

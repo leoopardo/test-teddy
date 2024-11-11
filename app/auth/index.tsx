@@ -13,6 +13,7 @@ import { Dimensions, useColorScheme, View } from 'react-native';
 import { HomeScreen } from './home';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import { SavedClients } from './savedClients';
 
 const Drawer = createDrawerNavigator();
 
@@ -27,7 +28,9 @@ function CustomDrawerContent(props: any) {
                 className=" flex justify-between"
             >
                 <View>
-                    <View className={`items-center h-56 pt-14 justify-center ${theme === "light" ?"bg-neutral-200" : "bg-neutral-600"} mt-[-18%]`}>
+                    <View
+                        className={`items-center h-56 pt-14 justify-center ${theme === 'light' ? 'bg-neutral-200' : 'bg-neutral-600'} mt-[-18%]`}
+                    >
                         <Themedlogo />
                     </View>
                     <DrawerItemList {...props} />
@@ -36,7 +39,7 @@ function CustomDrawerContent(props: any) {
                     <Button
                         onClick={async () => {
                             await AsyncStorage.removeItem('username');
-                            router.push("/")
+                            router.push('/');
                         }}
                         data-testid="sair-btn"
                         className="w-[90%]"
@@ -106,13 +109,13 @@ function Auth() {
                     }}
                 />
                 <Drawer.Screen
-                    name="Teste"
-                    component={HomeScreen}
+                    name="Salvos"
+                    component={SavedClients}
                     options={{
-                        title: 'Teste',
+                        title: 'Clientes Salvos',
                         drawerIcon: ({ color, size }) => (
                             <MaterialCommunityIcons
-                                name="hospital-marker"
+                                name="content-save"
                                 color={color}
                                 size={size}
                             />
